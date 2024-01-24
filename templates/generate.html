@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <style>
+        .main-content {
+            width: calc(100% - 4rem); /* Adjust this value depending on the width of your sidebar */
+            position: relative;
+        };
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script
+	type="module"
+    src="https://gradio.s3-us-west-2.amazonaws.com/3.29.0/gradio.js"
+    ></script>
+	<!-- src="https://gradio.s3-us-west-2.amazonaws.com/3.12.0/gradio.js" -->
+    <!-- src="https://gradio.s3-us-west-2.amazonaws.com/3.29.0/gradio.js"> -->
+
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+</head>
+<body class="bg-gray-100">
+    <script>
+        // get username from session
+    let username = "{{ session.get('username') }}";
+
+    function    handleShareClick(postfix) {
+        const gradioEl = document.querySelector('gradio-app');
+        const imgEls = gradioEl.querySelectorAll(`#gallery${postfix} img`);
+
+        // Get the necessary fields 
+        const promptTxt = gradioEl.querySelector(`#prompt-text-input${postfix} textarea`).value;
+        const negativePromptTxt = gradioEl.querySelector(`#negative-prompt-text-input${postfix} textarea`).value;
+
+        // Get values from the sliders
+        const modelGuidanceScale = parseFloat(gradioEl.querySelector(`#guidance-scale-slider${postfix} input`).value);
+        const numSteps = parseInt(gradioEl.querySelector(`#num-inference-step-slider${postfix} input`).value);
+        const seed = parseInt(gradioEl.querySelector(`#seed-slider${postfix} input`).value);
+
+        // Get the values from dropdowns
+        const modelName = gradioEl.querySelector(`#model-dropdown${postfix} input`).value;
+        const schedulerName = gradioEl.querySelector(`#scheduler-dropdown${postfix} input`).value;
+
+        const formData = new FormData();
+        formData.append('promptTxt', promptTxt);
+        formData.append('negativePromptTxt', negativePromptTxt);
+        formData.append('guidanceScale', modelGuidanceScale);
+        formData.append('numSteps', numSteps);
+        formData.append('seed', seed);
+                
+        if(gradioEl.querySelector(`#image-size-slider${postfix} input`))
+        {
+            const imageSize = parseInt(gradioEl.querySelector(`#image-size-slider${postfix} input`).value);
+            formData.append('imageSize', imageSize);
+
+        }
+        else
+        {
+            const imageSize = "";
+            formData.append('imageSize', imageSize);
+
+        }
+        formData.append('modelName', modelName);
+        formData.append('schedulerName', schedulerName);
+
+        return {formData, imgEls} ;
+    }
+
+    async function uploadFile(
+            file,
+            formData
+            ){
+        const UPLOAD_URL = 'http://127.0.0.1:5000/v1/api/upload-image';
+        formData.append('file', file);
+        formData.append('username',username); // This is constant for all the images
+        const response = await fetch(UPLOAD_URL, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData,
+        });
+        const url = await response.text(); // This returns the URL of the uploaded file (S3) bucket
+        return url;
+    }
+
+
+     // Function to change the selected button
+     
+    function changeSelectedButtonWithRetry(buttonText, maxRetries = 5, delay = 200) {
+    let retries = 0;
+
+    const attemptChange = () => {
+        if (retries >= maxRetries) {
+        console.log('Max retries reached. Unable to change selected button.');
+        return;
+        }
+
+        const buttons = $('.tab-nav button');
+        const imageToImageTab = $('#image-to-image-tab');
+        const textToImageTab = $('#text-to-image-tab');
+        const imageInpaintingTab = $('#inpainting-tab');
+
+        buttons.each(function() {
+        const button = $(this);
+        if (button.text().trim().toLowerCase() === buttonText.trim().toLowerCase()) {
+            button.addClass('selected');
+        } else {
+            button.removeClass('selected');
+        }
+        });
+
+        // Hide all tabs by default
+        imageToImageTab.hide();
+        textToImageTab.hide();
+        imageInpaintingTab.hide();
+
+        // Show the corresponding tab based on the selected button
+        if (buttonText === 'Image-to-Image') {
+        imageToImageTab.show();
+        } else if (buttonText === 'Text-to-Image') {
+        textToImageTab.show();
+        } else if (buttonText === 'Inpainting') {
+        imageInpaintingTab.show();
+        }
+
+        const selectedButton = $('.tab-nav button.selected');
+        if (selectedButton.length === 0) {
+        console.log('Selected button not found. Retrying...');
+        retries++;
+        setTimeout(attemptChange, delay);
+        }
+    };
+
+    attemptChange();
+    }
+
+    </script>
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        {% include 'sidebar.html' %}
+        <!-- Main Content -->
+        <div class="w-full sm:w-5/6">
+            {% include 'alerts.html' %}
+            <!-- <gradio-app id="gradio-iframe" src="http://127.0.0.1:7860" class="w-full h-full border-0" theme="light"></gradio-app> -->
+            <gradio-app id="gradio-iframe" src="https://kbora-minerva-generate-docker.hf.space" class="w-full h-full border-0" theme_mode="light"></gradio-app>
+        </div>
+    </div>            
+
+    <script>
+        let selectedTab = parseInt("{{ selectedTab }}");
+        if (selectedTab === 1) {
+            changeSelectedButtonWithRetry('Text-to-Image');
+        } else if (selectedTab === 2) {
+            changeSelectedButtonWithRetry('Image-to-Image');
+        } else if (selectedTab === 3) {
+            changeSelectedButtonWithRetry('Inpainting');
+        }
+    </script>
+    {% if artworkId %}
+    <script>
+
+    // if artworKId is specified with url, run following codes to load the parameters
+    let artworkId = "{{ artworkId }}";
+
+    if (artworkId) {
+        const LOAD_URL = `http://127.0.0.1:5000/v1/api/load-parameters/${artworkId}`;
+
+        fetch(LOAD_URL, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("HTTP error " + response.status);
+            }
+            return response.json();
+        })
+        .then(parameters => {
+            // Get the Gradio elements
+
+            const checkForElement = (selector, callback) => {
+                let element = $(selector)[0];
+                if(element) {
+                    callback(element);
+                } else {
+                    setTimeout(() => checkForElement(selector, callback), 500);
+                }
+            }
+            const gradioEl = document.querySelector('gradio-app');
+
+            const promptInput = gradioEl.querySelector('#prompt-text-input textarea');
+            const promptInputInpainting = gradioEl.querySelector('#prompt-text-input-i textarea');
+
+            const negativePromptInput = gradioEl.querySelector('#negative-prompt-text-input textarea');
+
+            // Get the slider inputs
+            const guidanceScaleInput = gradioEl.querySelector('#guidance-scale-slider input');
+            const numInferenceStepInput = gradioEl.querySelector('#num-inference-step-slider input');
+            const imageSizeInput = gradioEl.querySelector('#image-size-slider input');
+            const seedInput = gradioEl.querySelector('#seed-slider input');
+
+            // Get the dropdown inputs
+            const modelDropdown = gradioEl.querySelector('#model-dropdown input');
+            const schedulerDropdown = gradioEl.querySelector('#scheduler-dropdown input');
+
+            console.log(parameters)
+            checkForElement('#prompt-text-input textarea', (promptInput) => {
+                console.log(promptInput);
+                promptInput.value = parameters.text_prompt;
+                promptInput.dispatchEvent(new Event('input', { 'bubbles': true }));
+            });
+
+            checkForElement('#negative-prompt-text-input textarea', (negativePromptInput) => {
+                console.log(negativePromptInput);
+                negativePromptInput.value = parameters.negative_prompt;
+                negativePromptInput.dispatchEvent(new Event('input', { 'bubbles': true }));
+            });
+
+            checkForElement('#model-dropdown input', (modelDropdown) => {
+                const modelDropdownInput =  gradioEl.querySelector('#model-dropdown input')
+                modelDropdownInput.value = parameters.model_name;
+                modelDropdown.dispatchEvent(new Event('input', { 'bubbles': true }));
+            });
+
+            checkForElement('#scheduler-dropdown input', (schedulerDropdown) => {
+                const schedulerInput =  gradioEl.querySelector('#scheduler-dropdown input')
+                schedulerInput.value = parameters.scheduler_name;
+                schedulerInput.dispatchEvent(new Event('input', { 'bubbles': true }));
+            });
+
+            checkForElement('#seed-slider input', (seedInput) => {
+                console.log(seedInput);
+                seedInput.value = parameters.seed;
+                seedInput.dispatchEvent(new Event('input', { 'bubbles': true }));
+            });
+
+            checkForElement('#guidance-scale-slider input', (guidanceScaleInput) => {
+                console.log(guidanceScaleInput);
+                guidanceScaleInput.value = parameters.model_guidance_scale;
+                guidanceScaleInput.dispatchEvent(new Event('input', { 'bubbles': true }));
+            });
+
+
+            checkForElement('#num-inference-step-slider input', (numInferenceStepInput) => {
+                console.log(numInferenceStepInput);
+                numInferenceStepInput.value = parameters.model_num_steps;
+                numInferenceStepInput.dispatchEvent(new Event('input', { 'bubbles': true }));
+            });
+
+
+            // checkAndSetInput('#image-size-input', parameters.model_image_size);
+
+
+        })
+        .catch(error => {
+            console.error("An error occurred while fetching the parameters:", error);
+        });
+    }
+    </script>
+    {% endif %}
+    {% if forkedArtworkId %}
+    <script>
+
+    function fetchComponentsWithRetry(maxRetries = 3, delay = 100) {
+    return new Promise((resolve, reject) => {
+        let retries = 0;
+        let inputField = null;
+        let imageField = null;
+
+        const attemptFetch = () => {
+        if (retries >= maxRetries) {
+            reject(new Error('Max retries reached. Unable to fetch components.'));
+            return;
+        }
+
+        inputField = $('#image-upload-img2img input')[0];
+        imageField = $('#image-upload-img2img img')[0];
+
+        if (!inputField || !imageField) {
+            console.log('Components not found. Retrying...');
+            retries++;
+            setTimeout(attemptFetch, delay);
+        } else {
+            console.log('Components fetched successfully:');
+            console.log('Input field:', inputField);
+            console.log('Image field:', imageField);
+            resolve({ inputField, imageField });
+        }
+        };
+
+        attemptFetch();
+    });
+    }
+
+
+    // if artworKId is specified with url, run following codes to load the parameters
+    let forkedArtworkId = "{{ forkedArtworkId }}";
+
+    if (forkedArtworkId) {
+        const LOAD_URL = `http://127.0.0.1:5000/v1/api/load-parameters/${forkedArtworkId}`;
+
+        fetch(LOAD_URL, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("HTTP error " + response.status);
+            }
+            return response.json();
+        })
+        .then(parameters => {
+            // Get the Gradio elements
+            const gradioEl = document.querySelector('gradio-app');
+
+            const checkForElement = (selector, callback) => {
+                let element = $(selector)[0];
+                if(element) {
+                    callback(element);
+                } else {
+                    setTimeout(() => checkForElement(selector, callback), 500);
+                }
+            }
+
+            checkForElement('#image-upload-img2img input', (inputField) => {
+                console.log(inputField);
+            });
+
+            checkForElement('#image-img2img img', (imageField) => {
+                console.log(imageField);
+                imageField.src = parameters.image_url;
+            });
+
+
+
+        })
+        .catch(error => {
+            console.error("An error occurred while fetching the parameters:", error);
+        });
+    }
+    </script>
+    {% endif %}
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.body.addEventListener('click', async (e) => {
+                if (e.target && e.target.id === 'share-btn') {
+                    const gradioEl = document.querySelector('gradio-app');
+                    
+                    const shareBtn = e.target;
+                    const shareBtnEl = gradioEl.querySelector('#share-btn');
+                    const shareIconEl = gradioEl.querySelector('#share-btn-share-icon');
+                    const loadingIconEl = gradioEl.querySelector('#share-btn-loading-icon');
+
+                    shareBtnEl.style.pointerEvents = 'none';
+                    shareIconEl.style.display = 'none';
+                    loadingIconEl.style.removeProperty('display');
+
+                    let { formData, imgEls } = handleShareClick('');
+                    if (!imgEls.length) {
+                        return;
+                    };
+
+                    const files = await Promise.all(
+                        [...imgEls].map(async (imgEl) => {
+                            const res = await fetch(imgEl.src);
+                            const blob = await res.blob();
+                            const fileSrc = imgEl.src.split('/').pop(); // Get the file name from the img src path
+                            const imgId = Date.now();
+                            const fileName = `${fileSrc}-${imgId}.jpg`; // Fixed fileName construction
+                            return new File([blob], fileName, { type: 'image/jpeg' });
+                        })
+                    );
+
+                    // Ensure that only one image is uploaded by taking the first element if there are multiple
+                    if (files.length > 1) {
+                        files.splice(1, files.length - 1);
+                    }
+
+                    const urls = await Promise.all(files.map((f) => uploadFile(
+                        f, formData
+                    )));
+
+                    shareBtnEl.style.removeProperty('pointer-events');
+                    shareIconEl.style.removeProperty('display');
+                    loadingIconEl.style.display = 'none';
+
+                }
+            });
+
+            document.body.addEventListener('click', async (e) => {
+                if (e.target && e.target.id === 'share-btn-img2img') {
+                    const shareBtn = e.target;
+                    const gradioEl = document.querySelector('gradio-app');
+                    const shareBtnEl = gradioEl.querySelector('#share-btn-img2img');
+                    const shareIconEl = gradioEl.querySelector('#share-btn-share-icon-img2img');
+                    const loadingIconEl = gradioEl.querySelector('#share-btn-loading-icon-img2img');
+
+                    shareBtnEl.style.pointerEvents = 'none';
+                    shareIconEl.style.display = 'none';
+                    loadingIconEl.style.removeProperty('display');
+
+                    let { formData, imgEls } = handleShareClick('-img2img');
+                    if (!imgEls.length) {
+                        return;
+                    };
+
+                    const files = await Promise.all(
+                        [...imgEls].map(async (imgEl) => {
+                            const res = await fetch(imgEl.src);
+                            const blob = await res.blob();
+                            const fileSrc = imgEl.src.split('/').pop(); // Get the file name from the img src path
+                            const imgId = Date.now();
+                            const fileName = `${fileSrc}-${imgId}.jpg`; // Fixed fileName construction
+                            return new File([blob], fileName, { type: 'image/jpeg' });
+                        })
+                    );
+
+                    // Ensure that only one image is uploaded by taking the first element if there are multiple
+                    if (files.length > 1) {
+                        files.splice(1, files.length - 1);
+                    }
+
+                    const urls = await Promise.all(files.map((f) => uploadFile(
+                        f, formData
+                    )));
+
+                    shareBtnEl.style.removeProperty('pointer-events');
+                    shareIconEl.style.removeProperty('display');
+                    loadingIconEl.style.display = 'none';
+
+                }
+            });
+
+            document.body.addEventListener('click', async (e) => {
+                if (e.target && e.target.id === 'share-btn-inpainting') {
+                    const shareBtn = e.target;
+                    const gradioEl = document.querySelector('gradio-app');
+                    const shareBtnEl = gradioEl.querySelector('#share-btn-inpainting');
+                    const shareIconEl = gradioEl.querySelector('#share-btn-share-icon-inpainting');
+                    const loadingIconEl = gradioEl.querySelector('#share-btn-loading-icon-inpainting');
+
+                    shareBtnEl.style.pointerEvents = 'none';
+                    shareIconEl.style.display = 'none';
+                    loadingIconEl.style.removeProperty('display');
+
+                    let { formData, imgEls } = handleShareClick('-inpainting');
+                    if (!imgEls.length) {
+                        return;
+                    };
+
+                    const files = await Promise.all(
+                        [...imgEls].map(async (imgEl) => {
+                            const res = await fetch(imgEl.src);
+                            const blob = await res.blob();
+                            const fileSrc = imgEl.src.split('/').pop(); // Get the file name from the img src path
+                            const imgId = Date.now();
+                            const fileName = `${fileSrc}-${imgId}.jpg`; // Fixed fileName construction
+                            return new File([blob], fileName, { type: 'image/jpeg' });
+                        })
+                    );
+
+                    // Ensure that only one image is uploaded by taking the first element if there are multiple
+                    if (files.length > 1) {
+                        files.splice(1, files.length - 1);
+                    }
+
+                    const urls = await Promise.all(files.map((f) => uploadFile(
+                        f, formData
+                    )));
+
+                    shareBtnEl.style.removeProperty('pointer-events');
+                    shareIconEl.style.removeProperty('display');
+                    loadingIconEl.style.display = 'none';
+
+                }
+            });
+        });
+    </script>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+</body>
+
+
+</html>

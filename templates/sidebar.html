@@ -1,0 +1,209 @@
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<style>
+    .navbar-container {
+        width: 16.666666667%;
+        background-color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        display: none;
+        min-height: 100vh;
+        flex-grow: 1;
+    }
+    
+    @media screen and (min-width: 640px) {
+        .navbar-container {
+            display: block;
+        }
+    }
+    
+    .navbar-container .logo-container {
+        padding: 16px;
+    }
+    
+    .navbar-container .logo {
+        width: 96px;
+        margin-bottom: 32px;
+        margin-left: 16px;
+    }
+    
+    .navbar-container nav {
+        padding-left: 16px;
+    }
+    
+    .navbar-container .nav-link {
+        display: block;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        padding-left: 16px;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .navbar-container .nav-link:hover {
+        background-color: #f0f9ff;
+        color: #3b82f6;
+    }
+    
+    .navbar-container .nav-link-logout:hover {
+        background-color: #fef2f2;
+        color: #ef4444;
+    }
+
+    .navbar-container form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navbar-container input[type="text"] {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px;
+    transition: all 0.2s;
+}
+
+.navbar-container input[type="text"]:focus {
+    border-color: #3b82f6;
+    outline: none;
+}
+
+.navbar-container input[type="submit"] {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.navbar-container input[type="submit"]:hover {
+    background-color: #2563eb;
+}
+
+    </style>
+
+
+<div class="w-1/6">
+<div class="w-1/6 bg-white shadow-md hidden sm:block min-h-screen flex-1 position: fixed">
+    <div style="display: flex; align-items: center;" class="p-4">
+        <img src="/static/minerva-logo.png" alt="Logo" class="w-48 mb-8 ml-4" onclick="logoClick()" onmouseover="this.style.cursor='pointer'">
+    </div>
+    <nav class="text-left px-4">
+        <a href="{{ url_for('index') }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+            <i class="fas fa-home"></i> <span class="inline sm:hidden md:inline">Home Page</span>
+        </a>
+        <div class="relative">
+            <a id="search-button" href="#" class="cursor-pointer block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+                <i class="fas fa-search"></i> 
+                <span class="inline sm:hidden md:inline">Search users</span>
+            </a>
+            <div id="search-modal" class="absolute z-20 top-0 left-full w-96 h-64 overflow-y-auto bg-white border-b-2 border-gray-400 rounded-r-lg shadow-md p-4 hidden">
+                <form>   
+                    <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <input type="search" id="search-input" class="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search user" required>
+                    </div>
+                </form>
+                <div id="search-results" class="p-2">
+                    <!-- Search results will be appended here -->
+                </div>
+            </div>
+            
+        </div>
+
+        <a href="{{ url_for('events') }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+            <i class="fas fa-calendar"></i> <span class="inline sm:hidden md:inline">Events</span>
+        </a>
+        {% if session['username'] %}
+            <a href="{{ url_for('generate') }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+                <i class="fas fa-plus-square"></i> <span class="inline sm:hidden md:inline">Generate</span>
+            </a>
+            <a href="{{ url_for('manage_artworks') }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+                <i class="fa-sharp fa-light fa-camera-retro"></i> <span class="inline sm:hidden md:inline">Manage Artworks</span>
+            </a>
+            <a href="{{ url_for('profile', username=session['username']) }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+                <i class="fas fa-user"></i> <span class="inline sm:hidden md:inline">Profile</span>
+            </a>
+            <a href="{{ url_for('settings') }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+                <i class="fas fa-cog"></i> <span class="inline sm:hidden md:inline">Settings</span>
+            </a>
+            <a href="{{ url_for('logout') }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-red-100 hover:text-red-500">
+                <i class="fas fa-sign-out-alt"></i> <span class="inline sm:hidden md:inline">Logout</span>
+            </a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+                <i class="fas fa-plus-square"></i> <span class="inline sm:hidden md:inline">Create</span>
+            </a>
+            <a href="{{ url_for('login') }}" class="block py-2.5 px-4 rounded-l-lg rounded-r-lg transition duration-200 hover:bg-blue-100 hover:text-blue-500">
+                <i class="fas fa-sign-in-alt"></i> <span class="inline sm:hidden md:inline">Login</span>
+            </a>
+        {% endif %}
+    </nav>
+</div>
+</div>
+  
+<script>
+$("#search-button").on("click", function(e) {
+  e.stopPropagation();
+  $("#search-modal").toggleClass("hidden");
+});
+
+$(document).on("click", function() {
+  $("#search-modal").addClass("hidden");
+});
+
+// Prevent click events from propagating up from the modal to the document
+$("#search-modal").on("click", function(e) {
+  e.stopPropagation();
+});
+
+$("#search-input").on("keyup", function() {
+  var username = $(this).val();
+  $.ajax({
+    url: "/v1/api/search-username/" + username,
+    method: "GET",
+    success: function(data) {
+      $("#search-results").empty();
+      $.each(data, function(i, user) {
+        // Generate a user "card"
+        var userCard = $('<div/>', {
+          'class': 'border p-2 mt-1 cursor-pointer rounded hover:bg-gray-100',
+          'click': function() {
+            window.location.href = '/profile/' + user.username;
+          } 
+        });
+        var userName = $('<p/>', {
+          'text': user.username
+        });
+        var name = $('<p/>', {
+          'text': user.name,
+          'class': 'text-gray-500'
+        });
+        var profilePicture = $('<img/>', {
+          'src': user.profilePictureS3URL,
+          'class': 'w-10 h-10 rounded-full',
+          'alt': 'Profile Picture'
+        });
+        var bio = $('<p/>', {
+          'text': user.bio
+        });
+        userCard.append(profilePicture, userName, name, bio);
+        $("#search-results").append(userCard);
+      });
+    },
+    error: function(err) {
+      console.log(err);
+    }
+  });
+});
+
+ function logoClick()
+ {
+    window.location.href = "/";
+ }
+</script>

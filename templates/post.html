@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/post.css">
+    <title>{{ user.name }} {{ user.surname }} at Minerva: {{ post.caption }}</title>
+    
+</head>
+<body class="bg-gray-100">
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded shadow-md relative">
+            <h2 class="text-2xl font-bold mb-2">Join Minerva!</h2>
+            <p class="mb-4">When you join Minerva, you will be able to interact with more posts!</p>
+            <a href="{{ url_for('login') }}" class="bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 text-white px-4 py-2 rounded block text-center mb-4 w-full">Login</a>
+            <a href="{{ url_for('register') }}" class="bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 text-white px-4 py-2 rounded block text-center w-full">Register</a>
+            <button onclick="closeModal()" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <!-- Likes/Retweets Modal -->
+    <div id="likes-retweets-modal" class="fixed inset-0 hidden flex items-center justify-center z-50 rounded">
+        <div class="bg-white p-8 rounded shadow-md relative max-w-md w-full">
+            <h2 id="modal-title" class="text-2xl font-bold mb-2"></h2>
+            <div id="modal-content" class="overflow-y-auto h-80"></div>
+            <button onclick="closeLikesRetweetsModal()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>     
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        {% include 'sidebar.html' %}
+        <!-- Main Content -->
+        <div class="w-full sm:w-5/6">
+            {% include 'alerts.html' %}
+            <div class="container mx-auto px-4 py-12">
+                <a href="javascript:history.back()" class="text-blue-500 no-underline hover:underline ml-4"><i class="fas fa-arrow-left"></i> Back</a>
+                <div class="mx-auto max-w-xl">
+                    <div id="confirmDeleteModal" class="delete-modal hidden-div">
+                        <div class="modal-content">
+                            <h2>Are you sure?</h2>
+                            <p>Do you really want to delete this post? This process cannot be undone.</p>
+                            <div class="modal-buttons">
+                                <button id="confirmDeleteButton" class="confirm-btn">Yes</button>
+                                <button id="cancelDeleteButton" class="cancel-btn">No</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-3 rounded-2xl shadow mb-4 mt-4 px-4 py-4">
+                        <div class="flex items-center justify-between" style="position: relative;">
+                            <div class="flex items-center">
+                                <img src="{{ user.profilePictureS3URL }}" class="w-8 h-8 rounded-full mr-3" alt="Artwork">
+                                <div class="flex flex-col">
+                                    <div class="flex items-baseline">
+                                        <h2 class="font-semibold text-sm mt-1">{{ user.name }} {{ user.surname }}</h2>
+                                        <a href="{{ url_for('profile', username=post.owner) }}" class="text-gray-600 text-xs ml-2 no-underline hover:underline">@{{ post.owner }}</a>
+                                    </div>
+                                    <p class="text-gray-600 text-xs">{{ post.datePosted }}</p>
+                                </div>
+                            </div>
+                            
+                            <div style="position: relative;">
+                                <svg class="w-6 h-6 text-gray-500 cursor-pointer hover:text-gray-800 transition-colors duration-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" onclick="toggleEditMenu()">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <div id="edit-menu" class="absolute border-2 top-0 right-0 transform z-50 translate-y-3 w-48 py-2 mt-2 bg-white rounded-md shadow-xl hidden">
+                                    <a href="{{ url_for('generate', artworkId=artwork._id)}}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-500 hover:text-white" >Copy Parameters</a>
+                                    {% if post.owner == session['username'] %}
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-500 hover:text-white" onclick="editDescription()">Edit Description</a>
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-500 hover:text-white" onclick="showConfirmModal('{{post._id}}')">Remove Post</a>
+                                    {% endif %}
+                                </div>
+
+                            </div>
+                        </div> 
+                        <div class="mt-2">  
+                            <div class="mt-4 relative w-11/12 mx-auto rounded-lg p-2">
+                                <p id="caption-{{ post.id }}" class="mb-2 text-sm" contenteditable="false">{{ post.caption }}</p>
+                                {% if post.owner == session['username'] %}
+                                <div class="absolute top-1 right-1">
+                                    {% if post.owner == session['username'] %}
+                                    <div id="edit-caption-icon-{{ post.id }}" class="edit-caption-icon" data-post-id="{{ post.id }}" style="cursor: pointer;">
+                                        <i class="fas fa-edit"></i>
+                                    </div>
+                                    <div id="check-caption-icon-{{ post.id }}" class="check-caption-icon" data-post-id="{{ post.id }}" style="cursor: pointer; display: none;">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+
+                            </div>
+                            
+                            <div class="mt-4 relative image-container w-11/12 mx-auto" style="height: 85%;">
+                                <img src="{{ artwork.imageURLS3 }}" class="w-full h-full rounded object-cover border" alt="Artwork">
+                                <div class="absolute bottom-0 left-0 w-full hidden-caption">
+                                    <p class="text-white text-sm font-bold bg-black bg-opacity-50 px-2 py-1 rounded-b">{{ artwork.generativeCaption }}</p>
+                                </div>
+                            </div>
+                            <div class="container bg-white w-96 h-auto m-auto rounded-lg flex flex-col items-center justify-center" style="margin-top:20px; margin-bottom: 10px;">
+                                <div class="header text-center text-gray-500">
+                                    <h1 class="font-bold">Generation Parameters:</h1>
+                                </div>
+                                <div class="content bg-white rounded-full">
+                                    <div class="mt-4 flex flex-wrap justify-center items-center">
+                                        <div class="meta-container rounded-2xl border border-gray-400 p-2 flex items-center mb-2 mr-2" data-tooltip="Guidance Scale: The guidance scale is a scalar value that controls the trade-off between the guidance information and the model's own creativity or ability to explore different possibilities ">
+                                        <svg fill="#000000" height="200px" width="200px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512.006 512.006" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <g> <g> <path d="M246.833,106.67H289.5c11.797,0,21.333-9.536,21.333-21.333c0-11.797-9.536-21.333-21.333-21.333h-42.667 c-11.797,0-21.333,9.536-21.333,21.333C225.5,97.134,235.036,106.67,246.833,106.67z"></path> <path d="M374.833,106.67h30.507c3.115,0,6.165,0.213,9.131,0.64c1.024,0.149,2.027,0.213,3.029,0.213 c10.453,0,19.584-7.68,21.099-18.325c1.643-11.669-6.443-22.464-18.112-24.128c-4.949-0.683-9.984-1.067-15.147-1.067h-30.507 c-11.797,0-21.333,9.536-21.333,21.333C353.5,97.134,363.036,106.67,374.833,106.67z"></path> <path d="M435.974,226.883c-9.301,5.099-19.904,7.787-30.635,7.787c-0.001,0-0.002,0-0.003,0s-0.002,0-0.003,0H106.667 C47.759,234.67,0,282.429,0,341.337s47.759,106.667,106.667,106.667h225.83l-27.582,27.582c-8.331,8.331-8.331,21.839,0,30.17 c8.331,8.331,21.839,8.331,30.17,0l64-64c0.004-0.004,0.006-0.008,0.01-0.011c0.493-0.494,0.96-1.012,1.403-1.552 c0.203-0.247,0.379-0.507,0.569-0.761c0.227-0.303,0.462-0.6,0.673-0.915c0.203-0.304,0.379-0.619,0.565-0.93 c0.171-0.286,0.35-0.565,0.508-0.86c0.17-0.317,0.313-0.643,0.466-0.967c0.145-0.308,0.299-0.61,0.43-0.925 c0.13-0.314,0.235-0.635,0.349-0.953c0.122-0.338,0.251-0.672,0.356-1.018c0.096-0.318,0.167-0.642,0.248-0.964 c0.089-0.353,0.188-0.701,0.259-1.061c0.074-0.372,0.117-0.748,0.171-1.122c0.045-0.314,0.105-0.622,0.136-0.941 c0.138-1.4,0.138-2.81,0-4.21c-0.031-0.318-0.091-0.627-0.136-0.941c-0.054-0.375-0.097-0.75-0.171-1.122 c-0.071-0.359-0.17-0.708-0.259-1.061c-0.081-0.322-0.152-0.645-0.248-0.964c-0.105-0.346-0.234-0.68-0.356-1.018 c-0.114-0.318-0.219-0.639-0.349-0.953c-0.131-0.315-0.284-0.618-0.43-0.925c-0.153-0.324-0.296-0.65-0.466-0.967 c-0.158-0.294-0.337-0.574-0.508-0.86c-0.186-0.311-0.362-0.627-0.565-0.93c-0.211-0.315-0.446-0.612-0.673-0.915 c-0.19-0.254-0.366-0.514-0.569-0.761c-0.443-0.54-0.91-1.059-1.403-1.552c-0.004-0.004-0.006-0.008-0.01-0.011l-64-64 c-8.331-8.331-21.839-8.331-30.17,0c-8.331,8.331-8.331,21.839,0,30.17l27.582,27.582h-225.83c-35.343,0-64-28.657-64-64 c0-35.343,28.657-64,64-64h298.667c0.001,0,0.002,0,0.003,0s0.002,0,0.003,0c17.877,0,35.541-4.501,51.136-13.035 c10.347-5.653,14.123-18.603,8.469-28.971C459.292,225.006,446.342,221.166,435.974,226.883z"></path> <path d="M502.364,126.318c-4.928-10.688-17.557-15.381-28.309-10.496c-10.709,4.907-15.403,17.579-10.496,28.288 c3.84,8.341,5.781,17.259,5.781,26.347c-0.021,1.6-0.064,3.2-0.171,4.757c-0.853,11.755,7.957,21.952,19.733,22.805 c0.512,0.043,1.045,0.064,1.557,0.064c11.072,0,20.437-8.555,21.248-19.797c0.192-2.432,0.277-4.885,0.299-7.616 C512.006,155.203,508.742,140.27,502.364,126.318z"></path> <path d="M176.915,164.421c8.331,8.331,21.839,8.331,30.17,0s8.331-21.839,0-30.17L158.17,85.337l48.915-48.915 c8.331-8.331,8.331-21.839,0-30.17c-8.331-8.331-21.839-8.331-30.17,0l-64,64c-8.331,8.331-8.331,21.839,0,30.17L176.915,164.421 z"></path> </g> </g> </g> </g></svg>                                    
+                                        <div class="ml-2 text-gray-800">{{ artwork.guidanceScale }}</div>
+                                        </div>
+                                        <div class="meta-container rounded-2xl  border border-gray-400 p-2 flex items-center mb-2 mr-2" data-tooltip="Random Seed: Random seed in diffusion models determines the starting point for random number generation, ensuring reproducibility.">
+                                            <svg fill="#000000" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M22,21H19.927a5.557,5.557,0,0,0-5.235-5A5.282,5.282,0,0,0,13,16.267V10a7.008,7.008,0,0,1,7-7,1,1,0,0,0,0-2,9.007,9.007,0,0,0-8.706,6.76A6.646,6.646,0,0,0,7,6C3.505,6,1.262,9.305,1.168,9.445a1,1,0,0,0,0,1.11C1.262,10.7,3.505,14,7,14a6.477,6.477,0,0,0,4-1.519v5.14c-.079.091-.159.179-.232.277A4.77,4.77,0,0,0,8.23,17.25,4.384,4.384,0,0,0,4.1,21H2a1,1,0,0,0,0,2H5a1,1,0,0,0,1-1,2.534,2.534,0,0,1,2.23-2.75,2.2,2.2,0,0,1,1.922.78,1,1,0,0,0,1.769-.139A2.79,2.79,0,0,1,14.692,18C16.517,18,18,19.794,18,22a1,1,0,0,0,1,1h3a1,1,0,0,0,0-2ZM7,12a5.354,5.354,0,0,1-3.724-2A5.354,5.354,0,0,1,7,8a5.354,5.354,0,0,1,3.724,2A5.354,5.354,0,0,1,7,12Z"></path></g></svg>
+                                            <div class="ml-2 text-gray-800">{{ artwork.seed }}</div>
+                                        </div>
+                                        <div class="meta-container rounded-2xl  border border-gray-400 p-2 flex items-center mb-2 mr-2" data-tooltip="Image Size: Image size in diffusion models refers to the dimensions (width and height) of the input and output images. ">
+                                            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill="#000000" fill-rule="evenodd" d="M580.330152,212.999001 L578.488194,212.999001 C578.212773,212.999001 577.997715,213.222859 577.997715,213.499001 C577.997715,213.767068 578.21731,213.999001 578.488194,213.999001 L581.507237,213.999001 C581.643364,213.999001 581.764746,213.944316 581.852704,213.855661 C581.94109,213.763694 581.997715,213.642369 581.997715,213.508523 L581.997715,210.48948 C581.997715,210.214059 581.773858,209.999001 581.497715,209.999001 C581.229649,209.999001 580.997715,210.218596 580.997715,210.48948 L580.997715,212.252351 L576.217991,207.472627 C576.022487,207.277123 575.712749,207.283968 575.517487,207.47923 C575.327935,207.668781 575.319269,207.988118 575.510884,208.179734 L580.330152,212.999001 Z M567.667563,199 L569.509521,199 C569.784943,199 570,198.776142 570,198.5 C570,198.231934 569.780405,198 569.509521,198 L566.490479,198 C566.354351,198 566.232969,198.054685 566.145011,198.14334 C566.056625,198.235308 566,198.356632 566,198.490479 L566,201.509521 C566,201.784943 566.223858,202 566.5,202 C566.768066,202 567,201.780405 567,201.509521 L567,199.74665 L571.779724,204.526374 C571.975228,204.721878 572.284966,204.715034 572.480228,204.519772 C572.66978,204.33022 572.678447,204.010883 572.486831,203.819268 L567.667563,199 Z" transform="translate(-566 -198)"></path> </g></svg>
+                                            <div class="ml-2 text-gray-800">{{ artwork.imageSize }}</div>
+                                        </div>
+                                        <div class="meta-container rounded-2xl  border border-gray-400 p-2 flex items-center mb-2 mr-2" data-tooltip="Number of steps: Number of inference steps in diffusion models refers to the duration of the generation process, determining the level of detail and quality in the generated output. ">
+                                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <polygon fill="none" stroke="#000000" stroke-width="2" points="16 6 11 6 11 11 6 11 6 16 1 16 1 23 23 23 23 1 16 1"></polygon> </g></svg>
+                                            <div class="ml-2 text-gray-800">{{ artwork.numSteps }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="container bg-white w-96 h-auto m-auto rounded-lg flex flex-col items-center justify-center">
+                                <div class="header relative text-center text-gray-500 w-full">
+                                    <div class="header-content inline-block relative">
+                                        <h1 class="font-bold inline">Model Parameters:</h1>
+                                    </div>
+                                </div>
+                                <div class="content bg-white rounded-full">
+                                    <div class="mt-4 flex flex-wrap justify-center items-center">
+                                        <div class="meta-container rounded-2xl border border-gray-400 p-2 flex items-center mb-2 mr-2" data-tooltip="Model : Model in diffusion models refers to the neural network architecture used for image generation, which learns to progressively refine noisy images into high-quality outputs. ">
+                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M14 2C14 2.74028 13.5978 3.38663 13 3.73244V4H20C21.6569 4 23 5.34315 23 7V19C23 20.6569 21.6569 22 20 22H4C2.34315 22 1 20.6569 1 19V7C1 5.34315 2.34315 4 4 4H11V3.73244C10.4022 3.38663 10 2.74028 10 2C10 0.895431 10.8954 0 12 0C13.1046 0 14 0.895431 14 2ZM4 6H11H13H20C20.5523 6 21 6.44772 21 7V19C21 19.5523 20.5523 20 20 20H4C3.44772 20 3 19.5523 3 19V7C3 6.44772 3.44772 6 4 6ZM15 11.5C15 10.6716 15.6716 10 16.5 10C17.3284 10 18 10.6716 18 11.5C18 12.3284 17.3284 13 16.5 13C15.6716 13 15 12.3284 15 11.5ZM16.5 8C14.567 8 13 9.567 13 11.5C13 13.433 14.567 15 16.5 15C18.433 15 20 13.433 20 11.5C20 9.567 18.433 8 16.5 8ZM7.5 10C6.67157 10 6 10.6716 6 11.5C6 12.3284 6.67157 13 7.5 13C8.32843 13 9 12.3284 9 11.5C9 10.6716 8.32843 10 7.5 10ZM4 11.5C4 9.567 5.567 8 7.5 8C9.433 8 11 9.567 11 11.5C11 13.433 9.433 15 7.5 15C5.567 15 4 13.433 4 11.5ZM10.8944 16.5528C10.6474 16.0588 10.0468 15.8586 9.55279 16.1056C9.05881 16.3526 8.85858 16.9532 9.10557 17.4472C9.68052 18.5971 10.9822 19 12 19C13.0178 19 14.3195 18.5971 14.8944 17.4472C15.1414 16.9532 14.9412 16.3526 14.4472 16.1056C13.9532 15.8586 13.3526 16.0588 13.1056 16.5528C13.0139 16.7362 12.6488 17 12 17C11.3512 17 10.9861 16.7362 10.8944 16.5528Z" fill="#000000"></path> </g></svg>
+                                            <div class="ml-2 text-gray-800">{{ artwork.modelName }}</div>
+                                        </div>
+                                        <div class="meta-container rounded-2xl border border-gray-400 p-2 flex items-center mb-2 mr-2" data-tooltip="Scheduler: Scheduler in diffusion models controls the dynamic progression of the generation process, regulating the degree of noise reduction at each step. ">
+                                            <svg fill="#000000" viewBox="0 0 100 100" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M79.67,49.23l-10-10a1.36,1.36,0,0,0-1.86,0l-1.86,1.87a1.34,1.34,0,0,0,0,1.86L69,46a.89.89,0,0,1-.09,1.27.87.87,0,0,1-.53.22H41L57.33,31.24a.89.89,0,0,1,1.27.09.87.87,0,0,1,.22.53v4.46a1.18,1.18,0,0,0,1.1,1.24h2.71a1.17,1.17,0,0,0,1.24-1.09V22a1.17,1.17,0,0,0-1.1-1.24H48.53a1.36,1.36,0,0,0-1.24,1.37v2.49a1.18,1.18,0,0,0,1.12,1.24H53a.88.88,0,0,1,.86.9.89.89,0,0,1-.24.58L33.52,47.37H21.24A1.28,1.28,0,0,0,20,48.69v2.64a1.46,1.46,0,0,0,1.36,1.37H33.77l20,20a.9.9,0,0,1-.1,1.27.85.85,0,0,1-.52.21h-4.5a1.17,1.17,0,0,0-1.24,1.1.33.33,0,0,0,0,.14v2.49a1.45,1.45,0,0,0,1.24,1.37H62.8A1.18,1.18,0,0,0,64,78.16V63.74a1.18,1.18,0,0,0-1.12-1.24H60.18a1.17,1.17,0,0,0-1.24,1.09V68.2a.88.88,0,0,1-.89.87.9.9,0,0,1-.6-.25L41.08,52.7H68.5a.89.89,0,0,1,.62,1.48l-3.22,3.1a1.35,1.35,0,0,0,0,1.87L67.76,61a1.34,1.34,0,0,0,1.86,0l10-9.92A1.36,1.36,0,0,0,79.67,49.23Z"></path></g></svg>
+                                        <div class="ml-2 text-gray-800">{{ artwork.schedulerName }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- <p class="text-gray-600 text-xs mt-2 ml-4">{{ post.datePosted }}</p> -->
+                            <hr class="my-2">
+                        </div>
+                        <div class="flex justify-center items-center mt-2 ml-4">
+                            <div>
+                                {% if session['username'] in post.likes %}  
+                                <i id="like-{{ post._id }}" class="fas fa-heart text-red-500 text-xs cursor-pointer mr-2" onclick="userAction('like', '{{ post._id }}')"></i>
+                                {% else %}
+                                <i id="like-{{ post._id }}" class="far fa-heart text-red-500 text-xs cursor-pointer mr-2" onclick="userAction('like', '{{ post._id }}')"></i>
+                                {% endif %}
+                                <a id="like-count-{{ post._id }}" href="#" onclick="showLikesModal()" class="text-xs no-underline hover:underline">{{ post.likeCount }} Likes</a>
+                                <a href="#" class="ml-4"><i class="fas fa-comment text-blue-500 text-xs cursor-pointer"></i></a> <a href="#" class="text-xs no-underline hover:underline">{{ post.commentCount }} Comments</a>
+                                <a href="#" class="ml-4"><i class="fas fa-filter text-blue-500 text-xs cursor-pointer"></i></a> <a href="#" class="text-xs no-underline hover:underline">{{ post.commentCount }} Fork</a>
+
+                            </div>
+                        </div>    
+                        <!-- Comments Section -->
+                        {% for commentId in post.comments %}
+                        {% set userCommented = mongo.db.profile_info.find_one({'username': post.comments[commentId].username}) %}
+                        <div class="mb-4">
+                            <hr class="my-2">
+                            <div class="flex items-start">
+                                <img src="{{ userCommented.profilePictureS3URL }}" class="w-8 h-8 rounded-full mr-3" alt="Profile Image">
+                                <div>
+                                    <div>
+                                        <div class="flex items-baseline">
+                                            <h2 class="font-semibold text-sm mr-1">{{ userCommented.name }} {{ userCommented.surname }}</h2>
+                                            <a href="{{ url_for('profile', username=userCommented.username) }}" class="text-gray-600 text-xs no-underline hover:underline">@{{ userCommented.username }}</a>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">{{ post.comments[commentId].createdAt }}</p>
+                                    </div>
+                                </div>
+                                {% if session['username'] == post.comments[commentId].username %}
+                                <div class="ml-auto relative">
+                                    <i class="fas fa-ellipsis-h text-gray-500 text-xs cursor-pointer" onclick="toggleCommentMenu('{{ commentId }}')"></i>
+                                    <div id="comment-menu-{{ commentId }}" class="dropdown-menu text-xs">
+                                        <div class="cursor-pointer flex items-center justify-center w-full py-2" onclick="deleteComment('{{ post._id }}', '{{ commentId }}')">
+                                            <i class="fas fa-trash text-red-600 mr-2"></i>
+                                            <span>Delete Comment</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm ml-10 mt-2">{{ post.comments[commentId].text }}</p>
+                        </div>
+                        {% endfor %}
+                        <div class="flex items-center mt-2">
+                            <input id="comment-input" type="text" class="rounded-full border-2 border-gray-300 w-full px-4 py-1 text-sm mr-2" placeholder="Write a comment...">
+                            <button id="send-comment" onclick="sendComment('{{ post._id }}')" class="rounded-full bg-blue-500 text-white px-2 py-1 text-sm">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>              
+                    </div>
+                </div>
+            </div>
+        </div>                    
+    </div>
+    <!-- Add your JavaScript functions to show the modal and fetch the likes and retweets -->
+   <script>
+        function sendComment(postId) {
+        const commentInput = document.getElementById('comment-input');
+        const commentText = commentInput.value;
+
+        if (commentText.trim() === '') {
+            return;
+        }
+
+        fetch(`/v1/api/comment/${postId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: commentText }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        raiseAlert('Comment sent!', 3);
+    }
+
+    function deleteComment(postId, commentId) {
+        fetch(`/v1/api/delete-comment/${postId}/${commentId}`, {
+            method: 'POST'
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+
+    function toggleCommentMenu(commentId) {
+        const commentMenu = document.getElementById(`comment-menu-${commentId}`);
+        commentMenu.classList.toggle('show-dropdown');
+    }
+
+    function showLikesRetweetsModal(type, postId) {
+        const modal = document.getElementById("likes-retweets-modal");
+        const modalTitle = document.getElementById("modal-title");
+        const modalContent = document.getElementById("modal-content");
+        let fetchUrl = "";
+
+        if (type === "likes") {
+            modalTitle.textContent = "Likes";
+            fetchUrl = `/v1/api/likes/${postId}`;
+        } else if (type === "retweets") {
+            modalTitle.textContent = "Retweets";
+            fetchUrl = `/v1/api/retweets/${postId}`;
+        }
+
+        modalContent.innerHTML = "";
+        fetch(fetchUrl)
+            .then((response) => response.json())
+            .then((data) => {
+                data.forEach(likedOrRetweeted => {
+                    const { fullname, username, profilePictureS3URL, isFollowing } = likedOrRetweeted;
+                    const userElement = document.createElement("div");
+                    userElement.classList.add(
+                        "flex",
+                        "items-center",
+                        "justify-between",
+                        "mb-2"
+                    );
+
+                    const userInfoElement = document.createElement("div");
+                    userInfoElement.classList.add("flex", "items-center");
+                    userInfoElement.innerHTML = `
+                    <img src="${profilePictureS3URL}" class="w-8 h-8 rounded-full mr-3" alt="Profile photo">
+                    <div>
+                        <a href="/profile/${username}" class="font-semibold text-sm no-underline hover:underline">${fullname}</a>
+                        <p class="text-xs text-gray-600">@${username}</p>
+                    </div>`;
+
+                    const followButton = document.createElement("button");
+                    followButton.classList.add(
+                        isFollowing ? "bg-gray-500": "bg-blue-500",
+                        "text-xm",
+                        "text-white",
+                        "px-4",
+                        "py-1",
+                        "rounded"
+                    );
+                    followButton.textContent = isFollowing
+                        ? "Unfollow"
+                        : "Follow";
+                    followButton.onclick = () => {
+                        handleFollowUnfollow(username, followButton);
+                    };
+
+                    userElement.appendChild(userInfoElement);
+                    if (username !== "{{ session['username'] }}") {
+                        userElement.appendChild(followButton);
+                    }
+
+                    modalContent.appendChild(userElement);
+                });
+            });
+        setTimeout(() => {
+            modal.classList.remove("hidden");
+        }, 1000);
+    }
+
+    function handleFollowUnfollow(username, followButton) {
+        const isFollowing = followButton.textContent === "Unfollow";
+        followButton.textContent = isFollowing ? "Follow" : "Unfollow";
+        followButton.classList.toggle("bg-blue-500");
+        followButton.classList.toggle("bg-gray-500");
+        
+        if (isFollowing) {
+            fetch(`/v1/api/unfollow/${username}`, {
+                method: "POST",
+            });
+        } else {
+            fetch(`/v1/api/follow/${username}`, {
+                method: "POST",
+            });
+        }
+    }
+
+
+    function showLikesModal() {
+        showLikesRetweetsModal("likes", '{{ post._id }}');
+    }
+
+    function showRetweetsModal() {
+        showLikesRetweetsModal("retweets", '{{ post._id }}');
+    }
+
+    // Function to toggle visibility of the edit menu
+    function toggleEditMenu() {
+        var menu = document.getElementById('edit-menu');
+        if (menu.style.display === 'none' || menu.style.display === '') {
+            menu.style.display = 'block';
+        } else {
+            menu.style.display = 'none';
+        }
+    }
+
+    var confirmDeleteModal = document.getElementById('confirmDeleteModal');
+    var confirmDeleteButton = document.getElementById('confirmDeleteButton');
+    var cancelDeleteButton = document.getElementById('cancelDeleteButton');
+    var postIdToDelete;
+
+    function showConfirmModal(postId) {
+        postIdToDelete = postId;
+        confirmDeleteModal.classList.remove('hidden-div');
+
+        // Also hide the edit menu
+        var menu = document.getElementById('edit-menu');
+        menu.style.display = 'none';
+
+    }
+
+
+    function removePost(postId) {
+        // Store the postId in a variable accessible to the confirmation and cancel button handlers
+        postIdToDelete = postId;
+        // Show the confirmation modal
+        confirmDeleteModal.classList.remove('hidden-div');
+    }
+
+    confirmDeleteButton.onclick = function() {
+        // Hide the confirmation modal
+        confirmDeleteModal.classList.add('hidden-div');
+        // Proceed with deletion
+        fetch('/v1/api/delete-post/' + postIdToDelete, {
+            method: 'POST',
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            // If the removal was successful, hide the post in the UI
+            document.getElementById(postIdToDelete).style.display = 'none';
+        })
+        .catch(e => {
+            console.log('There was an error: ', e);
+        });
+    };
+
+    cancelDeleteButton.onclick = function() {
+        // Hide the confirmation modal
+        confirmDeleteModal.classList.add('hidden-div');
+    };
+
+
+    // Function to edit a post's description
+    function editDescription(postId, newDescription) {
+    fetch('/api/change-description/' + postId, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            description: newDescription
+        }),
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        // If the update was successful, update the description in the UI
+        document.getElementById('description-' + postId).textContent = newDescription;
+    })
+    .catch(e => {
+        console.log('There was an error: ', e);
+    });
+    }
+
+    const metaContainers = document.querySelectorAll('.meta-container');
+
+    metaContainers.forEach(container => {
+    container.addEventListener("mouseover", (event) => {
+        // clear any existing timeout to avoid multiple messages being shown
+        clearTimeout(container.timeout);
+
+        // start the timeout
+        container.timeout = setTimeout(() => {
+            // show the message after 1 second (1000ms)
+            const message = container.dataset.tooltip;
+
+            // create a new div element for the tooltip
+            const tooltip = document.createElement("div");
+
+            // set the tooltip text
+            tooltip.innerText = message;
+
+            // style the tooltip
+            tooltip.style.position = "absolute";
+            tooltip.style.left = `${event.pageX}px`;
+            tooltip.style.top = `${event.pageY}px`;
+            tooltip.style.backgroundColor = "black";
+            tooltip.style.color = "white";
+            tooltip.style.padding = "10px";
+            tooltip.style.borderRadius = "5px";
+            tooltip.style.zIndex = "1000";
+
+            // make it more visible transparant
+            tooltip.style.opacity = "0.8";
+
+            // add the tooltip to the body
+            document.body.appendChild(tooltip);
+
+            // store the tooltip on the container so we can remove it later
+            container.tooltip = tooltip;
+        }, 1000);
+    });
+
+    container.addEventListener("mouseout", (event) => {
+        // clear the timeout when the mouse leaves the container
+        clearTimeout(container.timeout);
+
+        // remove the tooltip from the body
+        if (container.tooltip) {
+            document.body.removeChild(container.tooltip);
+            container.tooltip = null;
+        }
+    });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        let tooltipSpans = document.querySelectorAll('.tooltip-svg');
+        let tooltipTimeout;
+
+        tooltipSpans.forEach(function(tooltipSpan) {
+            let tooltip = document.createElement('span');
+            tooltip.classList.add('tooltip');
+            tooltip.textContent = tooltipSpan.parentElement.dataset.tooltip;
+            tooltipSpan.parentElement.appendChild(tooltip);
+        
+            tooltipSpan.addEventListener('mouseover', function() {
+                clearTimeout(tooltipTimeout);
+                tooltip.classList.add('show');
+            });
+        
+            tooltipSpan.addEventListener('mouseout', function() {
+                tooltipTimeout = setTimeout(function() {
+                    tooltip.classList.remove('show');
+                }, 500); // 500ms delay before hiding tooltip
+            });
+        });
+    });
+
+    function userAction(action, postId) {
+        if (!('{{ session["username"] }}')) {
+            document.getElementById("modal").classList.remove("hidden");
+            return;
+        }
+
+        if (action === 'like') {
+            fetch(`/v1/api/like/${postId}`, {
+                method: 'POST'
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const likeButton = document.querySelector(`#like-${postId}`);
+                    const likeCount = document.querySelector(`#like-count-${postId}`);
+                    likeCountInt = parseInt(likeCount.textContent.split(" ")[0])
+                    if (data.liked) { 
+                        likeButton.classList.remove('far');
+                        likeButton.classList.add('fas');
+                        likeCount.textContent = `${likeCountInt+1} Likes`;
+
+                        // Add animation class
+                        likeButton.classList.add('like-animation');
+                        
+                        // Create and animate +1 element
+                        const plusOne = document.createElement('span');
+                        plusOne.classList.add('plus-one');
+                        plusOne.textContent = '+1';
+                        likeButton.appendChild(plusOne);
+
+                        setTimeout(() => {
+                            likeButton.removeChild(plusOne); // Remove +1 element after animation completes
+                        }, 500);
+
+
+                        // Remove animation class after a delay
+                        setTimeout(() => {
+                            likeButton.classList.remove('like-animation');
+                        }, 500); 
+
+                    } else {
+                        likeButton.classList.remove('fas');
+                        likeButton.classList.add('far');
+                        likeCount.textContent = `${likeCountInt-1} Likes`;
+                        
+                        //Add animation class
+                        likeButton.classList.add('unlike-animation');
+                        // Remove animation class after a delay
+                        setTimeout(() => {
+                            likeButton.classList.remove('unlike-animation');
+                        }, 500); 
+                    }
+                }
+            });
+        } else if (action === 'retweet') {
+            fetch(`/v1/api/retweet/${postId}`, {
+                method: 'POST'
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const retweetCount = document.querySelector(`#retweet-count-${postId}`);
+                    retweetCountInt = parseInt(retweetCount.textContent.split(" ")[0])
+                    if (data.retweeted) {
+                        retweetCount.textContent = `${retweetCountInt+1} Retweets`;
+                    } else {
+                        retweetCount.textContent = `${retweetCountInt-1} Retweets`;
+                    }
+                }
+            });
+        }
+    }
+
+    function closeModal() {
+        document.getElementById("modal").classList.add("hidden");
+    }
+
+    function closeLikesRetweetsModal() {
+        document.getElementById("likes-retweets-modal").classList.add("hidden");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+    const tooltipIcons = document.querySelectorAll('.info-icon');
+
+    tooltipIcons.forEach(icon => {
+    const tooltipText = icon.dataset.tooltip;
+
+    // Create a span element to act as our tooltip box
+    const tooltipBox = document.createElement('span');
+    tooltipBox.textContent = tooltipText;
+
+    // Add Tailwind CSS classes to style the tooltip box
+    tooltipBox.classList.add(...'absolute bg-blue-500 text-white py-1 px-2 rounded text-xs top-6 left-1/2 transform -translate-x-1/2 opacity-0 transition duration-200 ease-in-out'.split(' '));
+
+    // Append the tooltip box to the icon element
+    icon.appendChild(tooltipBox);
+
+    // Show and hide the tooltip box on mouseover and mouseout
+    icon.addEventListener('mouseover', () => {
+        tooltipBox.classList.remove('opacity-0');
+        tooltipBox.classList.add('opacity-100');
+    });
+
+    icon.addEventListener('mouseout', () => {
+        tooltipBox.classList.remove('opacity-100');
+        tooltipBox.classList.add('opacity-0');
+    });
+    });
+    });
+
+    document.body.addEventListener('click', function (event) {
+        var editMenu = document.getElementById('edit-menu');
+        var target = event.target;
+        
+    });
+
+   </script>
+    <script src="/static/js/alerts.js"></script>
+<script>    
+    var post_id = "{{ post._id }}";  // Get post id from your Flask template
+    $('.edit-caption-icon').on('click', function() {
+        var postId = $(this).data('post-id');
+        var caption = $('#caption-' + postId);
+        caption.attr('contenteditable', 'true');
+        caption.css('background-color', '#f1f1f1');
+        $(this).hide();
+        $('#check-caption-icon-' + postId).show();
+    });
+
+    $('.check-caption-icon').on('click', function() {
+        var postId = $(this).data('post-id');
+        console.log(postId)
+        var caption = $('#caption-' + postId);
+        caption.attr('contenteditable', 'false');
+        caption.css('background-color', '#ffffff');
+        $(this).hide();
+        $('#edit-caption-icon-' + postId).show();
+        
+        console.log( `/v1/api/edit-caption/${post_id}`)
+        $.ajax({
+            url: `/v1/api/edit-caption/${post_id}`,
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                caption: caption.text()
+            }),
+            success: function(data) {
+                console.log('Success: ', data);
+            },
+            error: function(err) {
+                console.log('Error: ', err);
+            }
+        });
+        raiseAlert('Caption updated successfully!', 3);
+    });
+</script>
+
+</body>
+</html>

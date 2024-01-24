@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/image_share.css">
+    <title></title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Pass the username from Flask session to a JavaScript variable
+        let username = "{{ session.get('username') }}";
+        let tmpFileStorage = "{{ tmpFileStorage }}"
+        let selectedArtworkId = null;
+
+        // Function to update the selectedArtworkId value
+        function setSelectedArtworkId(artworkId) {
+            selectedArtworkId = artworkId;
+            // Trigger any necessary changes in the DOM based on the updated value
+            if (selectedArtworkId) {
+            // Perform actions when selectedArtworkId is not null
+            console.log("Selected Artwork ID: " + selectedArtworkId);
+            // Update the DOM elements accordingly
+            // ...
+            } else {
+            // Perform actions when selectedArtworkId is null
+            console.log("No Artwork ID selected");
+            // Update the DOM elements accordingly
+            // ...
+            
+            }
+        }
+    </script>
+    <style>
+        .main-content {
+            width: calc(100% - 4rem); /* Adjust this value depending on the width of your sidebar */
+            position: relative;
+        }
+
+        .meta-container {
+            display: inline-flex; /* Use inline-flex to allow the container to expand based on its content */
+            white-space: nowrap; /* Prevent line wrapping */
+            max-width: 100%; /* Limit the maximum width to the available space */
+        }
+
+        .meta-container svg {
+            flex-shrink: 0;
+            width: 24px; /* Adjust the width as desired */
+            height: 24px; /* Adjust the height as desired */
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="success-message" style="display: none; position: fixed; top: 20px; right: 20px; background-color: #dff0d8; color: #3c763d; padding: 15px; border-radius: 5px; z-index: 1001;">
+        Success message
+    </div>
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        {% include 'sidebar.html' %}
+        <!-- Main Content -->
+        <div class="w-full sm:w-5/6 ">
+            {% include 'alerts.html' %}
+            <div class="pt-10">
+                <div id="share-modal" tabindex="-1" aria-hidden="true" class="flex items-center justify-center fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+                    <div class="relative w-full max-w-2xl max-h-full">
+                        <!-- Modal content -->
+                        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                            <!-- Modal header -->
+                            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                                    Share Artwork
+                                </h3>
+                                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="defaultModal">
+                                    <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                    <span class="sr-only">Close modal</span>
+                                </button>
+                            </div>
+                            <!-- Modal body -->
+                            <div class="p-6 space-y-6">
+                                    <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                                    <textarea id="description" rows="3" class="block w-full mt-1 mb-4 py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm max-w-full"></textarea>
+                            </div>
+                            <div class="flex items-center pl-4 border border-gray-200 rounded dark:border-gray-700 m-4">
+                                <input id="share-on-profile" type="checkbox" value="" name="bordered-checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="share-on-profile" class="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Share this in profile</label>
+                                <input id="share-on-event" type="checkbox" value="" name="bordered-checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="share-on-event" class="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Share this in an event</label>
+                            </div>
+                            <div class="m-4">
+                                <label for="event_multiple" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Events</label>
+                                <select disabled id="event_multiple" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                    <option selected>---</option>
+                                    {% for event in events %}
+                                    <option value="{{ event._id }}">{{ event.eventName }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!-- Modal footer -->
+                            <div class="flex items-center p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">
+                                <button data-modal-hide="defaultModal" id = "share-to-profile-btn" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Share this artwork</button>
+                                <button data-modal-hide="defaultModal" type="button" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Decline</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <form>
+                    <div class="flex flex-col items-center space-y-6">
+                        <div id="image-container" class="relative w-full max-w-lg h-48 mt-1 mb-4 border border-gray-300 rounded-md shadow-sm cursor-pointer overflow-hidden">
+                            <img id="selected-image" src="https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png" alt="Selected image" class="w-full h-full object-cover">
+                            <div id="hover-message" class="hidden absolute inset-0 flex items-center justify-center text-white text-opacity-75 bg-black bg-opacity-50 text-center">
+                                <p>Click to change artwork</p>
+                            </div>
+                        </div>
+                        <div class="w-full max-w-lg">
+                            <div class="flex flex-row justify-between space-x-4">
+                                <button type="submit" id="share-to-profile" class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">Share</button>
+                                <button type="button" id="download-image" class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">Download</button>
+                                <button type="button" id="open-effects" class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">Effects</button>
+                                <button type="button" id="save-artwork" class="text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">Save</button>
+                                <button type="button" id="delete-artwork" class="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900">Delete</button>
+                            </div>
+                        </div>
+                        <div id="effect-panel" class="effect-panel shadow-lg rounded-lg flex-grow">
+                            <button id="toggle-effects-panel" class="toggle-effects-panel"> &gt; </button>
+                            <div id="effects" class="p-4">
+                                <div class="effect flex flex-col items-center space-y-2">
+                                    <label for="saturation-slider" class="w-full text-sm font-medium text-center">Saturation</label>
+                                    <input type="range" min="1" max="100" value="50" class="slider flex-grow appearance-none w-full h-1 rounded-full outline-none shadow-inner" id="saturation-slider">
+                                </div>
+                                <div class="effect flex flex-col items-center space-y-2">
+                                    <label for="hue-slider" class="w-full text-sm font-medium text-center">Hue</label>
+                                    <input type="range" min="1" max="100" value="1" class="slider flex-grow appearance-none w-full h-1 rounded-full outline-none shadow-inner" id="hue-slider">
+                                </div>
+                                <div class="effect flex flex-col items-center space-y-2">
+                                    <label for="brightness-slider" class="w-full text-sm font-medium text-center">Brightness</label>
+                                    <input type="range" min="1" max="100" value="50" class="slider flex-grow appearance-none w-full h-1 rounded-full outline-none shadow-inner" id="brightness-slider">
+                                </div>
+                                <div class="effect flex flex-col items-center space-y-2">
+                                    <label for="contrast-slider" class="w-full text-sm font-medium text-center">Contrast</label>
+                                    <input type="range" class="slider flex-grow appearance-none w-full h-1 rounded-full outline-none shadow-inner" id="contrast-slider" min="0" max="200" value="100">
+                                </div>
+                                <div class="effect flex flex-col items-center space-y-2">
+                                    <label for="blur-slider" class="w-full text-sm font-medium text-center">Blur</label>
+                                    <input type="range" class="slider flex-grow appearance-none w-full h-1 rounded-full outline-none shadow-inner" id="blur-slider" min="0" max="10" value="0">
+                                </div>
+                                <div class="effect flex flex-col items-center space-y-2">
+                                    <label for="sepia-slider" class="w-full text-sm font-medium text-center">Sepia</label>
+                                    <input type="range" class="slider flex-grow appearance-none w-full h-1 rounded-full outline-none shadow-inner" id="sepia-slider" min="0" max="100" value="0">
+                                </div>
+                                <div class="effect flex flex-col items-center space-y-2">
+                                    <label for="invert-slider" class="w-full text-sm font-medium text-center">Invert</label>
+                                    <input type="range" class="slider flex-grow appearance-none w-full h-1 rounded-full outline-none shadow-inner" id="invert-slider" min="0" max="100" value="0">
+                                </div>
+                                <div class="effect flex items-center justify-center mt-4">
+                                    <button id="reset-button" class="reset-button">Reset</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/image_share.js"></script>
+    <script src="/static/js/alerts.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            $('#share-to-profile').click(function(e) {
+                e.preventDefault();
+                $('#share-modal').toggleClass('hidden');
+            });
+            $('#share-modal button').click(function(e) {
+                e.preventDefault();
+                $('#share-modal').addClass('hidden');
+            });
+        });
+        $(document).ready(function() {
+            $('#download-image').click(function() {
+                var imageUrl = $("#selected-image").attr("src");
+                var filename = selectedArtworkId["$oid"]
+                window.location.href = '/download/' + filename;
+            });
+        });
+
+        $(document).ready(function() {
+            $('#delete-artwork').click(function() {
+                let artwork_id = selectedArtworkId["$oid"]; // replace this with the actual id
+                $.ajax({
+                    url: `/v1/api/delete-artwork/${artwork_id}`,
+                    type: 'POST',
+                    success: function(response) {
+                        // Refresh the page
+                        raiseAlert("Artwork deleted successfully", "3");
+                        
+                        // Remove the displayed image
+                        $('#selected-image').attr('src', 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png');
+                        selectedArtworkId = null;
+
+                        // Refresh image picker 
+                        fetchUserImages();
+                    },
+                    error: function(error) {
+                        // Add logic here to handle errors (like showing an error message to the user)
+                        raiseAlert("An error occurred while deleting the artwork", "2");
+
+                    }
+                });
+            });
+        });
+
+        $(document).ready(function() {
+            $('#share-on-event').change(function() {
+                if(this.checked) {
+                    $('#event_multiple').removeAttr('disabled');
+                } else {
+                    $('#event_multiple').attr('disabled', 'disabled');
+                }
+            });
+        });
+
+
+        $('#save-artwork').on('click', function() {
+            let effects = {
+                saturation: $('#saturation-slider').val(),
+                hue: $('#hue-slider').val(),
+                brightness: $('#brightness-slider').val(),
+                contrast: $('#contrast-slider').val(),
+                blur: $('#blur-slider').val(),
+                sepia: $('#sepia-slider').val(),
+                invert: $('#invert-slider').val(),
+            };
+            var artworkId = selectedArtworkId["$oid"]
+            // Send AJAX POST request to /v1/api/apply_effects
+            $.ajax({
+                url: `/v1/api/save-effects/${artworkId}`,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(effects),  // convert JavaScript object to JSON string
+                success: function(response) {
+                    // Handle success here
+                    console.log(response);
+                    raiseAlert("Artwork saved successfully", "3");
+                },
+                error: function(error) {
+                    // Handle error here
+                    console.log(error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ event.eventName }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<style>
+    .hidden-caption {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .image-container:hover .hidden-caption {
+        opacity: 1;
+    }
+
+    /* Added animation styles */
+    .like-animation {
+        animation-name: likeAnimation;
+        animation-duration: 0.5s;
+    }
+
+    .unlike-animation {
+        animation-name: unlikeAnimation;
+        animation-duration : 0.5s;
+    }
+
+    @keyframes likeAnimation {
+        0% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 0 transparent);
+        }
+        50% {
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 8px hotpink);
+        }
+        100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 0 transparent);
+        }
+    }
+
+    @keyframes unlikeAnimation{
+        0% { transform: scale(1); }
+        50% { transform: scale(0.8); }
+        100% { transform: scale(1); }
+    }
+
+    /* Added +1 text animation */
+    .plus-one {
+        position: absolute;
+        color: hotpink;
+        font-size: 8px;
+        font-weight: bold;
+        animation-name: plusOneAnimation;
+        animation-duration: 0.5s;
+        animation-fill-mode: both;
+    }
+
+    @keyframes plusOneAnimation {
+        0% {
+            opacity: 0;
+            transform: translateY(0);
+        }
+        50% {
+            opacity: 1;
+            transform: translateY(-10px);
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+
+</style>
+<script>
+    function userAction(action, postId) {
+        if (!('{{ session["username"] }}')) {
+            document.getElementById("modal").classList.remove("hidden");
+            return;
+        }
+
+        if (action === 'like') {
+            fetch(`/v1/api/event/like/${postId}`, {
+                method: 'POST'
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const likeButton = document.querySelector(`#like-${postId}`);
+                    const likeCount = document.querySelector(`#like-count-${postId}`);
+
+                    if (data.liked) { 
+                        likeButton.classList.remove('far');
+                        likeButton.classList.add('fas');
+                        likeCount.textContent = parseInt(likeCount.textContent) + 1;
+                        
+                        // Add animation class
+                        likeButton.classList.add('like-animation');
+                        
+                        // Create and animate +1 element
+                        const plusOne = document.createElement('span');
+                        plusOne.classList.add('plus-one');
+                        plusOne.textContent = '+1';
+                        likeButton.appendChild(plusOne);
+
+                        setTimeout(() => {
+                            likeButton.removeChild(plusOne); // Remove +1 element after animation completes
+                        }, 500);
+
+
+                        // Remove animation class after a delay
+                        setTimeout(() => {
+                            likeButton.classList.remove('like-animation');
+                        }, 500); 
+
+                    } else {
+                        likeButton.classList.remove('fas');
+                        likeButton.classList.add('far');
+                        likeCount.textContent = parseInt(likeCount.textContent) - 1;
+
+                        //Add animation class
+                        likeButton.classList.add('unlike-animation');
+                        // Remove animation class after a delay
+                        setTimeout(() => {
+                            likeButton.classList.remove('unlike-animation');
+                        }, 500); 
+
+                    }
+                }
+            });
+        }
+    }
+</script>
+<body class="bg-gray-100">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        {% include 'sidebar.html' %}
+        <!-- Main Content -->
+        <div class="w-full sm:w-5/6">
+            <div class="container mx-auto px-8 py-12">
+                <!-- Join Event Button -->
+                {% if user and event._id in user.joinedEvents %}
+                <div class="flex justify-end mb-6">
+                    <a href="{{ url_for('leave_event', eventId=event._id) }}" class="text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <i class="fas fa-user-minus mr-1"></i> Leave Event
+                    </a>
+                </div>
+                {% elif not user or event._id not in user.joinedEvents %}
+                <div class="flex justify-end mb-6">
+                    <a href="{{ url_for('join_event', eventId=event._id) }}" class="text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <i class="fas fa-user-plus mr-1"></i> Join Event
+                    </a>
+                </div>
+                {% endif %}
+                <!-- Event Description Box -->
+                <div class="w-full rounded-2xl bg-white shadow-lg p-5 text-gray-800 pt-10 relative">
+                    <!-- Event Name Box -->
+                    <div class="bg-blue-200 rounded-2xl text-center py-3 px-6 text-lg font-bold text-gray-700 absolute -top-6 left-4">
+                        {{ event.eventName }}
+                    </div>
+                    <div class="mb-2">
+                        <p class="text-gray-700">
+                            {{ event.eventDescription }}
+                        </p>
+                    </div>
+                </div>
+                <!-- Create a header -->
+                <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
+                <div class="mt-4 items-center justify-center">
+                    <h1 class="text-5xl font-extrabold dark:text-white">Event<small class="ml-2 font-semibold text-gray-500 dark:text-gray-400">Artworks</small></h1>
+                </div>
+                <!-- Event posts -->
+                <div id="posts-container" class="mx-auto max-w-xl mt-16">
+                    {% for post in posts %}
+                        <div class="bg-white p-3 rounded-2xl shadow mb-4 mt-4 px-4 py-4">
+                            <div class="flex items-center">
+                                <img src="{{ post.user.profilePictureS3URL }}" class="w-8 h-8 rounded-full mr-3" alt="Artwork" loading="lazy">
+                                <div>
+                                    <div class="flex items-baseline">
+                                        <h2 class="font-semibold text-sm">{{ post.user.name }} {{ post.user.surname }}</h2>
+                                        <a href="{{ url_for('profile', username=post.post.owner) }}" class="text-gray-600 text-xs ml-1 no-underline hover:underline">@{{ post.post.owner }}</a>
+                                    </div>
+                                    <p class="text-gray-600 text-xs">{{ post.post.datePosted }}</p>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <p class="mb-2 text-sm ml-4">{{ post.caption }}</p>
+                                <a href="{{ url_for('event_post_page', post_id=post.post._id) }}">
+                                    <div class="relative image-container w-11/12 mx-auto" style="height: 85%;">
+                                        <img src="{{ post.artwork.imageURLS3 }}" class="w-full h-full rounded object-cover" alt="Artwork" loading="lazy">
+                                        <div class="absolute bottom-0 left-0 w-full hidden-caption">
+                                            <p class="text-white text-sm font-bold bg-black bg-opacity-50 px-2 py-1 rounded-b">{{ post.artwork.generativeCaption }}</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="flex justify-center items-center mt-2">
+                                <div>
+                                    {% if session['username'] in post.post.likes %}
+                                    <i id="like-{{ post.post._id }}" class="fas fa-heart text-red-500 text-xs cursor-pointer" onclick="userAction('like', '{{ post.post._id }}')"></i> <span id="like-count-{{ post.post._id }}">{{ post.post.likeCount }}</span>
+                                    {% else %}
+                                    <i id="like-{{ post.post._id }}" class="far fa-heart text-red-500 text-xs cursor-pointer" onclick="userAction('like', '{{ post.post._id }}')"></i> <span id="like-count-{{ post.post._id }}">{{ post.post.likeCount }}</span>
+                                    {% endif %}
+                                    <a href="{{ url_for('event_post_page', post_id=post.post._id) }}"><i class="fas fa-comment text-blue-500 ml-4 text-xs cursor-pointer"></i></a> {{ post.post.commentCount }}
+                                    <a href="{{ url_for('event_post_page', post_id=post.post._id) }}"><i class="fas fa-filter text-blue-500 ml-3 text-xs cursor-pointer"></i></a> {{ post.post.commentCount }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

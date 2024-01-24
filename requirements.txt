@@ -1,0 +1,9 @@
+CORS
+Flask
+flask_cors
+gradio
+Gunicorn
+pydenticon
+Flask-PyMongo
+opencv-python
+boto3

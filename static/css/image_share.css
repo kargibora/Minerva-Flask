@@ -1,0 +1,216 @@
+
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+  }
+
+  #image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    margin: auto;
+}
+#image-container img {
+    width: 512px;
+    height: 512px;
+    object-fit: cover;
+}
+
+.image-picker {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 80%;
+    max-width: 600px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    z-index: 101;
+    overflow-y: auto;
+    max-height: 80%;
+}
+
+.image-picker img {
+    width: 128px;
+    height: 128px;
+    object-fit: cover;
+    cursor: pointer;
+    object-fit: cover;
+    border-radius: 4px;
+    transition: transform 0.2s;
+}
+
+.image-picker img:hover {
+    transform: scale(1.1);
+}
+
+#success-message {
+    display: none; 
+    position: fixed; 
+    top: 20px; 
+    right: 20px; 
+    background-color: #dff0d8; 
+    color: #3c763d; 
+    padding: 15px; 
+    border-radius: 5px; 
+    z-index: 1001;
+}
+
+
+#effect-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.effect {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.effect-button {
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+}
+
+.slider {
+    width: 200px;
+
+    /* Create a linear gradient for the background */
+    background: linear-gradient(
+        to right, 
+        #ac2ef0 0%, 
+        #f7be4a var(--value), 
+        #d3d3d3 var(--value), 
+        #d3d3d3 100%
+    );
+
+        
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #f7be4a;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #f7be4a;
+    cursor: pointer;
+    border-radius: 50%;
+}
+.effect-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 300px;
+    background-color: white;
+    overflow-y: auto;
+    transition: transform 0.3s;
+    transform: translateX(100%);
+    z-index: 2000; /* Add z-index to make it visible above other elements */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;  /* Distributes space between items */
+    align-items: center;  /* Aligns items along the cross axis */
+    padding: 20px;
+    box-sizing: border-box; /* Adds padding to the box's total width and height */
+    border-left: 1px solid #eee; /* Adds a border to the left side of the panel */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);  /* Add box shadow */
+    
+}
+
+.effect-panel.closed {
+    transform: translateX(0);
+}
+
+.toggle-effects-panel {
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    background: none;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    transform: translateY(-50%);
+    z-index: 2001; /* Add z-index to make it visible above the panel */
+    transition: background-color 0.3s, color 0.3s; 
+}
+
+
+.toggle-effects-panel:hover {
+    background-color: #f5f5f5;  /* Add hover effect */
+    color: #333;
+}
+
+.effect {
+    display: flex;
+    flex-direction: column;
+    align-items: center;  /* Centers items along the cross axis */
+    width: 100%;  /* Makes the .effect take full width of the parent container */
+    padding: 15px;  /* Adds some space around the sliders */
+}
+
+.effect label {
+    margin-bottom: 10px;  /* Adds some space between the label and the slider */
+    color: #444
+}
+
+.effect .slider {
+    width: 90%;  /* Makes the slider take 90% width of the .effect */
+}
+.effect .slider:hover {
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);  /* Add hover effect */
+}
+.close-panel {
+    font-size: 1.5rem;
+    color: #000000;
+    cursor: pointer;
+}
+
+.reset-button {
+    padding: 10px 20px;  /* Add padding */
+    font-size: 16px;  /* Increase font size */
+    color: white;  /* Change text color */
+    background-color: #ef5350;  /* Change background color */
+    border: none;  /* Remove border */
+    border-radius: 5px;  /* Add rounded corners */
+    cursor: pointer;  /* Add pointer cursor */
+    transition: background-color 0.3s, color 0.3s;  /* Add transition */
+}
+
+.reset-button:hover {
+    background-color: #e53935;  /* Add hover effect */
+}
+
+#image-container:hover #selected-image {
+    filter: blur(8px);
+}
+
+#image-container:hover #hover-message {
+    display: flex;
+}

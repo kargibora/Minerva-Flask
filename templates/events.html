@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Active Events</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        {% include 'sidebar.html' %}
+        <!-- Main Content -->
+        <div class="w-full sm:w-5/6">
+            <div class="container mx-auto px-8 py-12">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-700">Active Events</h2>
+                    <!-- <a href="{{ url_for('create_event') }}" class="text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <i class="fas fa-plus-circle mr-1"></i> Create Event
+                    </a> -->
+                </div>                
+                <div class="mb-5">
+                    <!-- Column Names -->
+                    <div class="flex mb-4 bg-blue-200 rounded p-3">
+                        <div class="w-2/4 px-3 text-center">
+                            <p class="font-bold text-gray-700">Topic</p>
+                        </div>
+                        <div class="w-1/4 px-3 text-center">
+                            <p class="font-bold text-gray-700">Artworks</p>
+                        </div>
+                        <div class="w-1/4 px-3 text-center">
+                            <p class="font-bold text-gray-700">Last Artwork Created By</p>
+                        </div>
+                    </div>
+                    <!-- Event Rows -->
+                    {% for event in events %}
+                    {% set createdBy = mongo.db.profile_info.find_one({'username': event.createdBy}) %}
+                    <div class="flex mb-4 items-center">
+                        <div class="w-2/4 px-3 flex items-center">
+                            <img class="rounded-full h-14 w-14 mr-4" src="{{ createdBy.profilePictureS3URL }}" alt="User profile picture">
+                            <div>
+                                <p class="font-bold text-gray-700"><a href="{{ url_for('event_details', eventId=event._id) }}" class="hover:text-blue-700">{{ event.eventName }}</a></p>
+                                <p class="text-sm text-gray-700"><a href="{{ url_for('profile', username=createdBy.username) }}" class="hover:text-blue-700">{{ createdBy.username }}</a> - {{ event.createdAt }}</p>
+                            </div>
+                        </div>
+                        <div class="w-1/4 px-3 flex items-center justify-center">
+                            <div class="text-left">
+                                <p class="text-sm text-gray-700">{{ event.postedArtworkCount }} Artworks</p>
+                                <p class="text-sm text-gray-700"> {{ event.viewCount }} Views</p>
+                            </div>
+                        </div>
+                        <div class="w-1/4 px-3 flex items-center">
+                            {% if event.lastPostedBy != '' %}
+                                {% set lastPostedBy = mongo.db.profile_info.find_one({'username': event.lastPostedBy}) %}
+                                <img class="rounded-full h-10 w-10 mr-4" src="{{ lastPostedBy.profilePictureS3URL }}" alt="User profile picture">
+                                <div>
+                                    <p class="font-bold text-sm text-gray-700"><a href="{{ url_for('profile', username=lastPostedBy.username) }}" class="hover:text-blue-700">{{ lastPostedBy.username }}</a></p>
+                                    <p class="text-sm text-gray-700">  {{ event.lastPostedAt }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

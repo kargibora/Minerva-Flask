@@ -1,0 +1,160 @@
+.hidden-caption {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.image-container:hover .hidden-caption {
+    opacity: 1;
+}
+
+.meta-container {
+    display: inline-flex; /* Use inline-flex to allow the container to expand based on its content */
+    white-space: nowrap; /* Prevent line wrapping */
+    max-width: 100%; /* Limit the maximum width to the available space */
+}
+
+.meta-container svg {
+    flex-shrink: 0;
+    width: 24px; /* Adjust the width as desired */
+    height: 24px; /* Adjust the height as desired */
+}
+
+.meta-container:hover {
+    background-color: lightblue; /* Or any other lighter blue color */
+}   
+
+.dropdown-menu {
+    position: absolute;
+    top: 1.5rem;
+    right: 0;
+    border: 1px solid red;
+    background-color: white;
+    z-index: 20;
+    display: none;
+    min-width: 140px;
+    border-radius: 25px;
+}
+
+.show-dropdown {
+    display: block;
+}
+
+.tooltip {
+position: absolute;
+background-color: black;
+color: white;
+padding: 5px 10px;
+border-radius: 5px;
+font-size: 0.75rem;
+visibility: hidden;
+opacity: 0;
+transition: opacity 0.2s;
+white-space: nowrap;
+}
+
+.tooltip.show {
+visibility: visible;
+opacity: 1;
+}
+
+#edit-menu {
+    right: 0;
+}
+
+.delete-modal {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+}
+
+.hidden-div {
+    display: none;
+}
+
+.confirm-btn {
+    background-color: green;
+    color: white;
+    padding: 10px 20px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background-color: red;
+    color: white;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+ /* Added animation styles */
+ .like-animation {
+    animation-name: likeAnimation;
+    animation-duration: 0.5s;
+}
+
+.unlike-animation {
+    animation-name: unlikeAnimation;
+    animation-duration : 0.5s;
+}
+
+@keyframes likeAnimation {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        transform: scale(1.2);
+        filter: drop-shadow(0 0 8px hotpink);
+    }
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 transparent);
+    }
+}
+
+@keyframes unlikeAnimation{
+    0% { transform: scale(1); }
+    50% { transform: scale(0.8); }
+    100% { transform: scale(1); }
+}
+
+/* Added +1 text animation */
+.plus-one {
+    position: absolute;
+    color: hotpink;
+    font-size: 8px;
+    font-weight: bold;
+    animation-name: plusOneAnimation;
+    animation-duration: 0.5s;
+    animation-fill-mode: both;
+}
+
+@keyframes plusOneAnimation {
+    0% {
+        opacity: 0;
+        transform: translateY(0);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}

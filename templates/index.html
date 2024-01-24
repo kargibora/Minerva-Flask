@@ -1,0 +1,298 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Bootstrap JS and Popper.js (required for dropdowns) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.6.0/umd/popper.min.js"></script>
+    <title>Home Page</title>
+    <style>
+        .hidden-caption {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .image-container:hover .hidden-caption {
+            opacity: 1;
+        }
+
+        /* Added animation styles */
+        .like-animation {
+            animation-name: likeAnimation;
+            animation-duration: 0.5s;
+        }
+
+        .unlike-animation {
+            animation-name: unlikeAnimation;
+            animation-duration : 0.5s;
+        }
+
+        @keyframes likeAnimation {
+            0% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 0 transparent);
+            }
+            50% {
+                transform: scale(1.2);
+                filter: drop-shadow(0 0 8px hotpink);
+            }
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 0 transparent);
+            }
+        }
+
+        @keyframes unlikeAnimation{
+            0% { transform: scale(1); }
+            50% { transform: scale(0.8); }
+            100% { transform: scale(1); }
+        }
+
+        /* Added +1 text animation */
+        .plus-one {
+            position: absolute;
+            color: hotpink;
+            font-size: 8px;
+            font-weight: bold;
+            animation-name: plusOneAnimation;
+            animation-duration: 0.5s;
+            animation-fill-mode: both;
+        }
+
+        @keyframes plusOneAnimation {
+            0% {
+                opacity: 0;
+                transform: translateY(0);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(-10px);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+    </style>
+<script>
+    function userAction(action, postId) {
+        if (!('{{ session["username"] }}')) {
+            document.getElementById("modal").classList.remove("hidden");
+            return;
+        }
+
+        if (action === 'like') {
+            fetch(`/v1/api/like/${postId}`, {
+                method: 'POST'
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const likeButton = document.querySelector(`#like-${postId}`);
+                    const likeCount = document.querySelector(`#like-count-${postId}`);
+
+                    if (data.liked) { 
+                        likeButton.classList.remove('far');
+                        likeButton.classList.add('fas');
+                        likeCount.textContent = parseInt(likeCount.textContent) + 1;
+                        
+                        // Add animation class
+                        likeButton.classList.add('like-animation');
+                        
+                        // Create and animate +1 element
+                        const plusOne = document.createElement('span');
+                        plusOne.classList.add('plus-one');
+                        plusOne.textContent = '+1';
+                        likeButton.appendChild(plusOne);
+
+                        setTimeout(() => {
+                            likeButton.removeChild(plusOne); // Remove +1 element after animation completes
+                        }, 500);
+
+
+                        // Remove animation class after a delay
+                        setTimeout(() => {
+                            likeButton.classList.remove('like-animation');
+                        }, 500); 
+
+                    } else {
+                        likeButton.classList.remove('fas');
+                        likeButton.classList.add('far');
+                        likeCount.textContent = parseInt(likeCount.textContent) - 1;
+
+                        //Add animation class
+                        likeButton.classList.add('unlike-animation');
+                        // Remove animation class after a delay
+                        setTimeout(() => {
+                            likeButton.classList.remove('unlike-animation');
+                        }, 500); 
+
+                    }
+                }
+            });
+        }
+    }
+
+        function closeModal() {
+            document.getElementById("modal").classList.add("hidden");
+        }
+
+        function toggleAdvancedSearchDropdown() {
+        document.getElementById("advanced-search-modal").classList.remove("hidden");
+        }
+
+        function closeAdvancedSearchModal() {
+            document.getElementById("advanced-search-modal").classList.add("hidden");
+        }
+        function toggleAdvancedSearchDropdown() {
+        var dropdown = document.getElementById('advanced-search-dropdown');
+        dropdown.classList.toggle('hidden');
+        }
+
+        function switchTab(tab) {
+        var modelsTab = document.getElementById('models-tab');
+        var usersTab = document.getElementById('users-tab');
+        var modelsTabButton = document.getElementById('models-tab-button');
+        var usersTabButton = document.getElementById('users-tab-button');
+
+        if (tab === 'models') {
+            modelsTab.classList.remove('hidden');
+            usersTab.classList.add('hidden');
+            modelsTabButton.classList.add('bg-gray-200');
+            usersTabButton.classList.remove('bg-gray-200');
+        } else if (tab === 'users') {
+            modelsTab.classList.add('hidden');
+            usersTab.classList.remove('hidden');
+            modelsTabButton.classList.remove('bg-gray-200');
+            usersTabButton.classList.add('bg-gray-200');
+        }
+    }
+    </script>
+</head>
+<body class="bg-gray-100">
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded shadow-md relative">
+            <h2 class="text-2xl font-bold mb-2">Join Minerva!</h2>
+            <p class="mb-4">When you join Minerva, you will be able to interact with more posts!</p>
+            <a href="{{ url_for('login') }}" class="bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 text-white px-4 py-2 rounded block text-center mb-4 w-full">Login</a>
+            <a href="{{ url_for('register') }}" class="bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 text-white px-4 py-2 rounded block text-center w-full">Register</a>
+            <button onclick="closeModal()" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>       
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        {% include 'sidebar.html' %}
+        <!-- Main Content -->
+        <div class="w-full sm:w-5/6">
+            <div class="mx-auto px-4 py-12">  
+                <!-- Search Bar -->
+                <div class="mx-auto max-w-xl mb-4" style="justify-content: center;">
+                    <form action="{{ url_for(request.endpoint) }}" method="get">   
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+                            <input type="text" name="prompt" id="default-search" class="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search by prompt" required>
+                        </div>
+                    </form>
+                </div>
+                <!-- Button to switch between sections -->
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    {% if section_name == "For You" %}
+                    <div class="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
+                        <ul class="flex flex-wrap -mb-px">
+                            <li class="mr-2">
+                                <a href="/" class="inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active dark:text-blue-500 dark:border-blue-500">For You</a>
+                            </li>
+                            <li class="mr-2">
+                                <a href="/following" class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300">Following</a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if section_name == "Following" %}
+                    <div class="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
+                        <ul class="flex flex-wrap -mb-px">
+                            <li class="mr-2">
+                                <a href="/" class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300">For You</a>
+                            </li>
+                            <li class="mr-2">
+                                <a href="/following" class="inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active dark:text-blue-500 dark:border-blue-500">Following</a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                <!-- Posts -->
+                <div id="posts-container" class="mx-auto max-w-xl">
+                    {% for post in posts %}
+                        <div class="bg-white p-3 rounded-2xl shadow mb-4 mt-4 px-4 py-4">
+                            <div class="flex items-center">
+                                <img src="{{ post.user.profilePictureS3URL }}" class="w-8 h-8 rounded-full mr-3" alt="Artwork" loading="lazy">
+                                <div>
+                                    <div class="flex items-baseline">
+                                        <h2 class="font-semibold text-sm">{{ post.user.name }} {{ post.user.surname }}</h2>
+                                        <a href="{{ url_for('profile', username=post.post.owner) }}" class="text-gray-600 text-xs ml-1 no-underline hover:underline">@{{ post.post.owner }}</a>
+                                    </div>
+                                    <p class="text-gray-600 text-xs">{{ post.post.datePosted }}</p>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <p class="mb-2 text-sm ml-4">{{ post.caption }}</p>
+                                <a href="{{ url_for('post_page', post_id=post.post._id) }}">
+                                    <div class="relative image-container w-11/12 mx-auto" style="height: 85%;">
+                                        <img src="{{ post.artwork.imageURLS3 }}" class="w-full h-full rounded object-cover" alt="Artwork" loading="lazy">
+                                        <div class="absolute bottom-0 left-0 w-full hidden-caption">
+                                            <p class="text-white text-sm font-bold bg-black bg-opacity-50 px-2 py-1 rounded-b">{{ post.artwork.generativeCaption }}</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="flex justify-center items-center mt-2">
+                                <div>
+                                    {% if session['username'] in post.post.likes %}
+                                    <i id="like-{{ post.post._id }}" class="fas fa-heart text-red-500 text-xs cursor-pointer" onclick="userAction('like', '{{ post.post._id }}')"></i> <span id="like-count-{{ post.post._id }}">{{ post.post.likeCount }}</span>
+                                    {% else %}
+                                    <i id="like-{{ post.post._id }}" class="far fa-heart text-red-500 text-xs cursor-pointer" onclick="userAction('like', '{{ post.post._id }}')"></i> <span id="like-count-{{ post.post._id }}">{{ post.post.likeCount }}</span>
+                                    {% endif %}
+                                    <a href="{{ url_for('post_page', post_id=post.post._id) }}"><i class="fas fa-comment text-blue-500 ml-4 text-xs cursor-pointer"></i></a> {{ post.post.commentCount }}
+                                    <a href="{{ url_for('post_page', post_id=post.post._id) }}"><i class="fas fa-filter text-blue-500 ml-3 text-xs cursor-pointer"></i></a> {{ post.post.commentCount }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="pagination flex justify-center mt-4 mb-10">
+                    {% if page > 1 %}
+                        <a href="{{ url_for(request.endpoint,page=1) }}" class="px-2 py-1 bg-blue-500 text-white rounded mx-1">First</a>
+                        <a href="{{ url_for(request.endpoint, page=page-1) }}" class="px-2 py-1 bg-blue-500 text-white rounded mx-1"><i class="fas fa-arrow-left"></i> Previous</a>
+                    {% endif %}
+    
+                    {% for i in range(1, total_pages+1) %}
+                        {% if i == page %}
+                            <span class="px-2 py-1 bg-blue-600 text-white rounded mx-1">{{ i }}</span>
+                        {% else %}
+                            <a href="{{ url_for(request.endpoint,  page=i) }}" class="px-2 py-1 bg-blue-500 text-white rounded mx-1">{{ i }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page < total_pages %}
+                        <a href="{{ url_for(request.endpoint, page=page+1) }}" class="px-2 py-1 bg-blue-500 text-white rounded mx-1">Next <i class="fas fa-arrow-right"></i></a>
+                        <a href="{{ url_for(request.endpoint, page=total_pages) }}" class="px-2 py-1 bg-blue-500 text-white rounded mx-1">Last</a>
+                    {% endif %}
+                </div>       
+            </div>
+        </div>                    
+    </div>
+</body>
+</html>
+
+
+
