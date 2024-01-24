@@ -20,7 +20,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "https://kbora-minerva-workspace.hf.space/"}})
 
 #app.config["MONGO_URI"] = "mongodb+srv://e2381036:w2ezVTDtU3jxXYh7@yigitify.g7walwv.mongodb.net/minerva"
-app.config["MONGO_URI"] = "mongodb+srv://yigitv4rli:dtGC8XKonuyBBS13@minerva.x39whgd.mongodb.net/minerva"
+app.config["MONGO_URI"] = "<MONGO_URI_HERE>"
 app.config["UPLOAD_FOLDER"] = "static/uploads"
 app.config["ALLOWED_EXTENSIONS"] = {"png", "jpg", "jpeg", "gif"}
 
